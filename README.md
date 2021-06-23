@@ -1,3 +1,5 @@
+# Server postgREST with Docker
+
 add this line before first migration file
 
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
