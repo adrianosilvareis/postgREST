@@ -7,78 +7,94 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model accounts {
+model Accounts {
   id               String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  authenticationId String?           @db.Uuid
+  authenticationId String?           @map("authentication_id") @db.Uuid
   name             String
   email            String            @unique
-  lastName         String            @db.VarChar(255)
-  createdAt        DateTime          @default(now())
-  updatedAt        DateTime          @updatedAt
-  Authentications  authentications[]
+  lastName         String            @map("last_name") @db.VarChar(255)
+  createdAt        DateTime          @default(now()) @map("created_at")
+  updatedAt        DateTime          @default(now()) @updatedAt @map("updated_at")
+  Authentications  Authentications[]
+
+  @@map("accounts")
 }
 
-model authentications {
-  id                      String                     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  accountsId              String                     @db.Uuid
-  Accounts                accounts                   @relation(fields: [accountsId], references: [id])
-  sessionsNumber          Int                        @default(1)
+model Authentications {
+  id                      String                    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  accountId               String                    @map("account_id") @db.Uuid
+  Accounts                Accounts                  @relation(fields: [accountId], references: [id])
+  sessionsNumber          Int                       @default(1) @map("sessions_number")
   password                String
-  failedAttempts          Int                        @default(0)
-  locked                  Boolean                    @default(false)
-  status                  authentication_status_enum @default(OFFLINE)
-  active                  Boolean                    @default(true)
-  authentication__session authentication__session[]
-  AuthGroups              auth_groups                @relation(fields: [auth_groupsId], references: [id])
-  auth_groupsId           String                     @db.Uuid
+  failedAttempts          Int                       @default(0) @map("failed_attempts")
+  locked                  Boolean                   @default(false)
+  status                  AuthenticationStatusEnum  @default(OFFLINE)
+  active                  Boolean                   @default(true)
+  AuthenticationToSession AuthenticationToSession[]
+  AuthGroups              AuthGroups                @relation(fields: [authGroupsId], references: [id])
+  authGroupsId            String                    @map("auth_groups_id") @db.Uuid
+  createdAt               DateTime                  @default(now()) @map("created_at")
+  updatedAt               DateTime                  @default(now()) @updatedAt @map("updated_at")
+
+  @@map("authentications")
 }
 
-enum authentication_status_enum {
+enum AuthenticationStatusEnum {
   ONLINE
   OFFLINE
   LOCKED
   INACTIVE
+
+  @@map("authentication_status_enum")
 }
 
-model authentication__session {
-  Authentications  authentications @relation(fields: [authenticationId], references: [id])
-  authenticationId String          @db.Uuid
-  Sessions         sessions        @relation(fields: [sessionId], references: [id])
-  sessionId        String          @db.Uuid
+model AuthenticationToSession {
+  Authentications  Authentications @relation(fields: [authenticationId], references: [id])
+  authenticationId String          @map("authentication_id") @db.Uuid
+  Sessions         Sessions        @relation(fields: [sessionId], references: [id])
+  sessionId        String          @map("session_id") @db.Uuid
 
   @@id([authenticationId, sessionId])
+  @@map("authentication__sessions")
 }
 
-model sessions {
+model Sessions {
   id                      String                    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   ip                      String
   device                  String
   active                  Boolean
-  createdAt               DateTime                  @default(now())
-  expiresAt               DateTime
-  authentication__session authentication__session[]
+  createdAt               DateTime                  @default(now()) @map("created_at")
+  expiresAt               DateTime                  @map("expires_at")
+  AuthenticationToSession AuthenticationToSession[]
+
+  @@map("sessions")
 }
 
-model auth_groups {
-  id                     String                     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  title                  String
-  createdAt              DateTime                   @default(now())
-  active                 Boolean
-  AuthGroups_Permissions auth_groups__permissions[]
-  Authentications        authentications[]
+model AuthGroups {
+  id                      String                    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  title                   String
+  createdAt               DateTime                  @default(now()) @map("created_at")
+  active                  Boolean
+  AuthGroupsToPermissions AuthGroupsToPermissions[]
+  Authentications         Authentications[]
+
+  @@map("auth_groups")
 }
 
-model auth_groups__permissions {
-  AuthGroups    auth_groups @relation(fields: [authGroupId], references: [id])
-  authGroupId   String      @db.Uuid
-  Permissions   permissions @relation(fields: [permissionsId], references: [name])
-  permissionsId String
+model AuthGroupsToPermissions {
+  AuthGroups    AuthGroups  @relation(fields: [authGroupId], references: [id])
+  authGroupId   String      @map("auth_group_id") @db.Uuid
+  Permissions   Permissions @relation(fields: [permissionsId], references: [name])
+  permissionsId String      @map("permission_id")
 
   @@id([authGroupId, permissionsId])
+  @@map("auth_groups__permissions")
 }
 
-model permissions {
-  name                   String                     @id
-  action                 String[]
-  AuthGroups_Permissions auth_groups__permissions[]
+model Permissions {
+  name                    String                    @id
+  action                  String[]
+  AuthGroupsToPermissions AuthGroupsToPermissions[]
+
+  @@map("permissions")
 }
